@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>One-word wall</title>
+<style>
+:root{--bg:#14212b;--fg:#f6f4ee;--a:#4fc3c3;--b:#e07a3a;--mut:#9fb0bb;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font-family:Arial,sans-serif;overflow:hidden}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:10}
+#head{position:absolute;top:env(safe-area-inset-top,0px);left:0;right:0;padding:20px 24px 8px;z-index:5;text-align:center;pointer-events:none}
+#head h1{margin:0;font-family:Georgia,serif;font-weight:400;font-size:clamp(24px,4.2vw,52px);line-height:1.15}
+#head p{margin:6px 0 0;color:var(--mut);font-size:clamp(14px,1.6vw,20px)}
+#wall{position:absolute;inset:0}
+.w{position:absolute;left:0;top:0;white-space:nowrap;font-family:Georgia,serif;will-change:transform;user-select:none;transition:font-size .4s}
+#bar{position:absolute;left:0;right:0;bottom:env(safe-area-inset-bottom,0px);padding:12px 16px;display:flex;gap:8px;justify-content:center;align-items:center;flex-wrap:wrap;z-index:5;background:linear-gradient(transparent,var(--bg) 40%)}
+input{font-size:20px;padding:12px 16px;border-radius:12px;border:1px solid #3b4d5a;background:#1d2f3b;color:var(--fg);width:min(320px,60vw)}
+button{font-size:18px;padding:12px 18px;border-radius:12px;border:0;background:var(--a);color:#0d1a22;font-weight:700;cursor:pointer}
+button.s{background:#27404f;color:var(--fg);font-weight:400;font-size:14px;padding:8px 12px}
+#st{position:absolute;right:16px;top:calc(env(safe-area-inset-top,0px) + 8px);font-size:13px;color:var(--mut);z-index:6}
+#adm{display:none;gap:8px}
+</style></head><body>
+<div id="head"><h1>In one word: how does handling research data feel today?</h1><p>Type a word and press Enter. Repeats grow bigger.</p></div>
+<div id="st">...</div>
+<div id="wall"></div>
+<div id="bar">
+<input id="in" maxlength="24" placeholder="Your word" autocomplete="off" aria-label="Your word">
+<button id="go">Add</button>
+<span id="adm"><button class="s" id="demo">Demo words</button><button class="s" id="clr">Clear</button></span>
+</div>
+<script>
+const wall=document.getElementById('wall'),inp=document.getElementById('in'),st=document.getElementById('st');
+const COLS=['#4fc3c3','#e07a3a','#f6f4ee','#9bd6a8','#f2c14e','#c3a6f0'];
+const BAD=['fuck','shit','cunt','bitch','dick','nigger','nigga','whore','slut','rape','nazi'];
+const words=new Map();let room=null,canEdit=false,last=0,ci=0;
+function norm(s){s=String(s||'').toLowerCase().trim().split(/\s+/)[0]||'';s=s.replace(/[^a-z\u00c0-\u024f'-]/g,'');if(s.length<2||s.length>24)return '';if(BAD.some(b=>s.includes(b)))return '';return s;}
+function sz(c){return Math.min(34+c*18,150);}
+function bounds(){const h=document.getElementById('head').offsetHeight+(parseFloat(getComputedStyle(document.documentElement).paddingTop)||0),b=document.getElementById('bar').offsetHeight;return{t:h,b:innerHeight-b,r:innerWidth};}
+function add(raw){const w=norm(raw);if(!w)return false;let o=words.get(w);
+ if(o){o.c++;o.el.style.fontSize=sz(o.c)+'px';return true;}
+ const el=document.createElement('span');el.className='w';el.textContent=w;el.style.fontSize=sz(1)+'px';el.style.color=COLS[ci++%COLS.length];wall.appendChild(el);
+ const B=bounds();o={c:1,el,x:Math.random()*Math.max(1,B.r-200),y:B.t+Math.random()*Math.max(1,B.b-B.t-80),vx:(Math.random()-.5)*1.2+.3,vy:(Math.random()-.5)*.9};
+ el.onclick=()=>{if(canEdit){el.remove();words.delete(w);}};words.set(w,o);return true;}
+function tick(){const B=bounds();words.forEach(o=>{const w=o.el.offsetWidth,h=o.el.offsetHeight;o.x+=o.vx;o.y+=o.vy;
+ if(o.x<0){o.x=0;o.vx=Math.abs(o.vx);}if(o.x+w>B.r){o.x=B.r-w;o.vx=-Math.abs(o.vx);}
+ if(o.y<B.t){o.y=B.t;o.vy=Math.abs(o.vy);}if(o.y+h>B.b){o.y=B.b-h;o.vy=-Math.abs(o~.vy);}
+ o.el.style.transform='translate('+o.x+'px,'+o.y+'px)';});requestAnimationFrame(tick);}
+function submit(){const w=norm(inp.value);inp.value='';if(!w||Date.now()-last<1200)return;last=Date.now();
+ fetch(BASE,{method:'POST',body:w}).then(r=>{if(!r.ok)throw 0;if(!live)add(w);}).catch(()=>add(w));}
+document.getElementById('go').onclick=submit;inp.addEventListener('keydown',e=>{if(e.key==='Enter')submit();});
+document.getElementById('demo').onclick=()=>['messy','scattered','siloed','slow','confusing','spreadsheets','duplicated','hidden','manual','fragile','tangled','messy','siloed','scattered'].forEach(add);
+document.getElementById('clr').onclick=()=>{words.forEach(o=>o.el.remove());words.clear();};
+tick();
+const P=new URLSearchParams(location.search);
+const TOPIC=(P.get('room')||'sbimb-gen3-wall-7k3q9x').replace(/[^A-Za-z0-9_-]/g,'');
+const BASE='https://ntfy.sh/'+TOPIC;let live=false;const seen=new Set();
+if(P.has('admin')){canEdit=true;document.getElementById('adm').style.display='flex';}
+try{const es=new EventSource(BASE+'/sse?since=all');
+ es.onopen=()=>{live=true;st.textContent='\u25cf live';};
+ es.onmessage=e=>{try{const m=JSON.parse(e.data);if(m.event!=='message'||seen.has(m.id)||typeof m.message!=='string')return;seen.add(m.id);add(m.message);}catch(_){}};
+ es.onerror=()=>{live=false;st.textContent='reconnecting...';};
+}catch(e){st.textContent='local only';}
+</script></body></html>

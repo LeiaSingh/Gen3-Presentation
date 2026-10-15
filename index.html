@@ -3,7 +3,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>One-word wall</title>
 <style>
-:root{--bg:#14212b;--fg:#f6f4ee;--a:#4fc3c3;--b:#e07a3a;--mut:#9fb0bb;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+:root{--bg:#e9e5d6;--fg:#012344;--a:#4fc3c3;--b:#e07a3a;--mut:#9fb0bb;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font-family:Arial,sans-serif;overflow:hidden}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:10}
@@ -42,10 +42,11 @@ function add(raw){const w=norm(raw);if(!w)return false;let o=words.get(w);
  el.onclick=()=>{if(canEdit){el.remove();words.delete(w);}};words.set(w,o);return true;}
 function tick(){const B=bounds();words.forEach(o=>{const w=o.el.offsetWidth,h=o.el.offsetHeight;o.x+=o.vx;o.y+=o.vy;
  if(o.x<0){o.x=0;o.vx=Math.abs(o.vx);}if(o.x+w>B.r){o.x=B.r-w;o.vx=-Math.abs(o.vx);}
- if(o.y<B.t){o.y=B.t;o.vy=Math.abs(o.vy);}if(o.y+h>B.b){o.y=B.b-h;o.vy=-Math.abs(o~.vy);}
+ if(o.y<B.t){o.y=B.t;o.vy=Math.abs(o.vy);}if(o.y+h>B.b){o.y=B.b-h;o.vy=-Math.abs(o.vy);}
  o.el.style.transform='translate('+o.x+'px,'+o.y+'px)';});requestAnimationFrame(tick);}
-function submit(){const w=norm(inp.value);inp.value='';if(!w||Date.now()-last<1200)return;last=Date.now();
- fetch(BASE,{method:'POST',body:w}).then(r=>{if(!r.ok)throw 0;if(!live)add(w);}).catch(()=>add(w));}
+const CID=Math.random().toString(36).slice(2,8);
+function submit(){const w=norm(inp.value);inp.value='';if(!w||Date.now()-last<1200)return;last=Date.now();add(w);
+ fetch(BASE,{method:'POST',body:CID+':'+w}).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);}).catch(e=>{st.textContent='not shared ('+(e.message||'network blocked')+')';});}
 document.getElementById('go').onclick=submit;inp.addEventListener('keydown',e=>{if(e.key==='Enter')submit();});
 document.getElementById('demo').onclick=()=>['messy','scattered','siloed','slow','confusing','spreadsheets','duplicated','hidden','manual','fragile','tangled','messy','siloed','scattered'].forEach(add);
 document.getElementById('clr').onclick=()=>{words.forEach(o=>o.el.remove());words.clear();};
@@ -56,7 +57,7 @@ const BASE='https://ntfy.sh/'+TOPIC;let live=false;const seen=new Set();
 if(P.has('admin')){canEdit=true;document.getElementById('adm').style.display='flex';}
 try{const es=new EventSource(BASE+'/sse?since=all');
  es.onopen=()=>{live=true;st.textContent='\u25cf live';};
- es.onmessage=e=>{try{const m=JSON.parse(e.data);if(m.event!=='message'||seen.has(m.id)||typeof m.message!=='string')return;seen.add(m.id);add(m.message);}catch(_){}};
+ es.onmessage=e=>{try{const m=JSON.parse(e.data);if(m.event!=='message'||seen.has(m.id)||typeof m.message!=='string')return;seen.add(m.id);const i=m.message.indexOf(':');const p=i>0?m.message.slice(0,i):'';if(p===CID)return;add(i>0&&i<=8?m.message.slice(i+1):m.message);}catch(_){}};
  es.onerror=()=>{live=false;st.textContent='reconnecting...';};
 }catch(e){st.textContent='local only';}
 </script></body></html>

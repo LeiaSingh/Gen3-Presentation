@@ -1,0 +1,609 @@
+<!-- ... existing code ... -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { 
+      margin: 0; 
+      padding: 0; 
+      background: #1a1715; 
+      display: flex; 
+      justify-content: center; 
+      align-items: center; 
+      height: 100vh; 
+      font-family: 'DM Sans', sans-serif; 
+      overflow: hidden; 
+    }
+    
+    #presentation-area {
+      position: relative;
+      width: 1280px;
+      height: 720px;
+      background: #e8dcd0;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    /* Decorative Background Elements */
+    .bg-decorator {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      z-index: 0;
+      opacity: 0.4;
+    }
+    .bg-blob-1 { top: -100px; left: -100px; width: 400px; height: 400px; background: #a35a59; }
+    .bg-blob-2 { bottom: -150px; right: -50px; width: 500px; height: 500px; background: #dd7a59; }
+
+    .slide {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+      transform: translateX(50px) scale(0.98);
+      z-index: 1;
+    }
+
+    .slide-content {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .slide.active {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(0) scale(1);
+      z-index: 10;
+    }
+
+    .slide.past {
+      transform: translateX(-50px) scale(0.98);
+    }
+
+    .slide.active h1, .slide.active h2 { animation: fadeUp 0.7s forwards 0.2s; opacity: 0; }
+    .slide.active p.subtitle { animation: fadeUp 0.7s forwards 0.4s; opacity: 0; }
+    .slide.active ul li { animation: fadeUp 0.5s forwards; opacity: 0; }
+    .slide.active ul li:nth-child(1) { animation-delay: 0.5s; }
+    .slide.active ul li:nth-child(2) { animation-delay: 0.6s; }
+    .slide.active ul li:nth-child(3) { animation-delay: 0.7s; }
+    .slide.active ul li:nth-child(4) { animation-delay: 0.8s; }
+    
+    .slide.active .pop-card { animation: popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; opacity: 0; }
+    .slide.active .pop-card:nth-child(1) { animation-delay: 0.3s; }
+    .slide.active .pop-card:nth-child(2) { animation-delay: 0.45s; }
+    .slide.active .pop-card:nth-child(3) { animation-delay: 0.6s; }
+    .slide.active .pop-card:nth-child(4) { animation-delay: 0.75s; }
+    .slide.active .pop-card:nth-child(5) { animation-delay: 0.9s; }
+    .slide.active .pop-card:nth-child(6) { animation-delay: 1.05s; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes popIn {
+      from { opacity: 0; transform: scale(0.9); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    #nav-controls {
+      position: absolute;
+      bottom: 24px;
+      right: 24px;
+      z-index: 100;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    .btn-nav {
+      background: #a35a59;
+      color: white;
+      border: none;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      transition: all 0.2s;
+    }
+    .btn-nav:hover { background: #8a4a49; transform: translateY(-2px); }
+    .btn-nav:disabled { background: #d3baba; cursor: not-allowed; transform: none; box-shadow: none; }
+    
+    #progress-container {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 6px;
+      background: rgba(0,0,0,0.1);
+      z-index: 100;
+    }
+    #progress-bar {
+      height: 100%;
+      background: #dd7a59;
+      width: 0%;
+      transition: width 0.4s ease;
+    }
+    #slide-counter {
+      position: absolute;
+      bottom: 24px;
+      left: 24px;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 700;
+      color: #a35a59;
+      font-size: 18px;
+      z-index: 100;
+      background: rgba(232, 220, 208, 0.8);
+      padding: 4px 12px;
+      border-radius: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="presentation-area">
+    
+    <!-- UI Overlays -->
+    <div id="progress-container"><div id="progress-bar"></div></div>
+    <div id="slide-counter">1 / 10</div>
+    
+    <div id="nav-controls">
+      <button class="btn-nav" id="btn-prev" disabled><i class="fa-solid fa-chevron-left"></i></button>
+      <button class="btn-nav" id="btn-next"><i class="fa-solid fa-chevron-right"></i></button>
+    </div>
+
+    <div class="slide active" id="slide1" style="background:#3a3330;">
+      <div class="bg-decorator bg-blob-1" style="background: rgba(221, 122, 89, 0.2);"></div>
+      <div class="bg-decorator bg-blob-2" style="background: rgba(163, 90, 89, 0.2);"></div>
+      <div class="slide-content" style="justify-content:center; align-items:center; text-align:center; padding:64px;">
+        <div class="pop-card" style="width:80px; height:4px; background:#dd7a59; margin:0 0 32px 0;"></div>
+        <p class="subtitle" contenteditable="true" style="font-family:'Outfit', sans-serif; font-size:18px; color:#dd7a59; text-transform:uppercase; letter-spacing:3px; margin:0 0 24px 0;">
+          A Local Platform For African Data
+        </p>
+        <h1 contenteditable="true" style="font-family:'Outfit', sans-serif; font-size:64px; font-weight:800; color:#f5ece4; margin:0 0 24px 0; line-height:1.1; max-width:1000px; text-transform:uppercase;">
+          Building a Gen3 Data Commons
+        </h1>
+        <p class="subtitle" contenteditable="true" style="font-size:24px; color:#c4b7b1; margin:0; max-width:800px;">
+          Deploying a sovereign, bare-metal data commons for the eLwazi ecosystem.
+        </p>
+      </div>
+    </div>
+
+    <div class="slide" id="slide2" style="background:#fdfbf8;">
+      <div class="bg-decorator" style="top: -200px; right: -200px; width: 600px; height: 600px; background: rgba(163, 90, 89, 0.05);"></div>
+      <div class="slide-content" style="padding:80px; flex-direction:column;">
+        <p class="subtitle" contenteditable="true" style="font-family:'Outfit', sans-serif; font-size:14px; color:#a35a59; font-weight:700; text-transform:uppercase; letter-spacing:2px; margin:0 0 16px 0;">
+          The Foundation
+        </p>
+        <h2 contenteditable="true" style="font-family:'Outfit', sans-serif; font-size:48px; font-weight:700; color:#2d2825; margin:0 0 48px 0;">
+          What is Gen3 &amp; Why Use It?
+        </h2>
+        
+        <div style="display:flex; gap:40px; flex-grow:1;">
+          <!-- What is Gen3 -->
+          <div class="pop-card" style="flex:1; background:#f5ece4; padding:40px; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.05); display:flex; flex-direction:column; gap:24px;">
+            <h3 contenteditable="true" style="font-size:28px; font-weight:700; color:#a35a59; border-bottom:2px solid #dfd5cc; padding-bottom:16px; margin:0;">
+              What is Gen3?
+            </h3>
+            <ul style="list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:20px;">
+              <li style="display:flex; align-items:center; gap:16px;">
+                <i class="fa-solid fa-code-branch" style="color:#dd7a59; font-size:24px; width:32px; text-align:center;"></i>
+                <span contenteditable="true" style="font-size:20px; color:#4a4440;">Open-source data platform.</span>
+              </li>
+              <li style="display:flex; align-items:center; gap:16px;">
+                <i class="fa-solid fa-share-nodes" style="color:#dd7a59; font-size:24px; width:32px; text-align:center;"></i>
+                <span contenteditable="true" style="font-size:20px; color:#4a4440;">Share, host, and explore complex data.</span>
+              </li>
+              <li style="display:flex; align-items:center; gap:16px;">
+                <i class="fa-solid fa-cubes" style="color:#dd7a59; font-size:24px; width:32px; text-align:center;"></i>
+                <span contenteditable="true" style="font-size:20px; color:#4a4440;">Built entirely from microservices.</span>
+              </li>
+              <li style="display:flex; align-items:center; gap:16px;">
+                <i class="fa-solid fa-sitemap" style="color:#dd7a59; font-size:24px; width:32px; text-align:center;"></i>
+                <span contenteditable="true" style="font-size:20px; color:#4a4440;">Strictly schema-driven architecture.</span>
+              </li>
+            </ul>
+          </div>
+          
+          <!-- Why Gen3 -->
+          <div class="pop-card" style="flex:1; background:#fff; padding:40px; border-radius:12px; border:2px solid #f5ece4; box-shadow:0 10px 30px rgba(0,0,0,0.02); display:flex; flex-direction:column; gap:24px;">
+            <h3 contenteditable="true" style="font-size:28px; font-weight:700; color:#685e58; border-bottom:2px solid #f5ece4; padding-bottom:16px; margin:0;">
+              Why Gen3?
+            </h3>
+            <ul style="list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:24px;">
+              <li style="display:flex; align-items:flex-start; gap:16px;">
+                <div style="background:#f5ece4; border-radius:50%; width:40px; height:40px; display:flex; align-items:center; justify-content:center; shrink:0;">
+                  <i class="fa-solid fa-magnifying-glass" style="color:#a35a59;"></i>
+                </div>
+                <div>
+                  <h4 style="margin:0 0 4px 0; font-size:20px; color:#2d2825;">Discoverable</h4>
+                  <p style="margin:0; font-size:16px; color:#685e58;">Promotes FAIR data principles across cohorts.</p>
+                </div>
+              </li>
+              <li style="display:flex; align-items:flex-start; gap:16px;">
+                <div style="background:#f5ece4; border-radius:50%; width:40px; height:40px; display:flex; align-items:center; justify-content:center; shrink:0;">
+                  <i class="fa-solid fa-shield-halved" style="color:#a35a59;"></i>
+                </div>
+                <div>
+                  <h4 style="margin:0 0 4px 0; font-size:20px; color:#2d2825;">Governed</h4>
+                  <p style="margin:0; font-size:16px; color:#685e58;">Fine-grained access control for sensitive data.</p>
+                </div>
+              </li>
+              <li style="display:flex; align-items:flex-start; gap:16px;">
+                <div style="background:#f5ece4; border-radius:50%; width:40px; height:40px; display:flex; align-items:center; justify-content:center; shrink:0;">
+                  <i class="fa-solid fa-network-wired" style="color:#a35a59;"></i>
+                </div>
+                <div>
+                  <h4 style="margin:0 0 4px 0; font-size:20px; color:#2d2825;">Federated Analysis</h4>
+                  <p style="margin:0; font-size:16px; color:#685e58;">Analyse data where it lives without duplication.</p>
+                </div>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide" id="slide3" style="background:#f5ece4;">
+      <div class="bg-decorator" style="bottom: -150px; left: -100px; width: 400px; height: 400px; background: rgba(221, 122, 89, 0.1);"></div>
+      <div class="slide-content" style="padding:80px; flex-direction:column; justify-content:center;">
+        <h2 contenteditable="true" style="font-family:'Outfit', sans-serif; font-size:40px; font-weight:700; color:#2d2825; margin:0 0 16px 0; text-align:center;">
+          Infrastructure &amp; Architecture
+        </h2>
+        <p class="subtitle" contenteditable="true" style="font-size:20px; color:#685e58; margin:0 0 48px 0; text-align:center;">
+          Moving from cloud-dependency to a robust, bare-metal cluster.
+        </p>
+        
+        <div style="display:flex; justify-content:center; align-items:center; gap:24px; position:relative;">
+          <!-- Connectors -->
+          <div style="position:absolute; top:50%; left:20%; right:20%; height:4px; background:#dfd5cc; z-index:0; transform:translateY(-50%);"></div>
+
+          <!-- Left: Hardware -->
+          <div class="pop-card" style="z-index:1; background:#fff; border-radius:12px; padding:32px; width:30%; text-align:center; box-shadow:0 10px 20px rgba(0,0,0,0.05); border-bottom:4px solid #a35a59;">
+            <i class="fa-solid fa-server" style="font-size:48px; color:#a35a59; margin-bottom:16px;"></i>
+            <h3 contenteditable="true" style="font-family:'Outfit', sans-serif; font-size:24px; font-weight:700; color:#2d2825; margin:0 0 12px 0;">Bare Metal Server</h3>
+            <ul style="list-style:none; padding:0; margin:0; text-align:left; color:#685e58; font-size:16px;">
+              <li style="margin-bottom:8px;"><i class="fa-solid fa-microchip" style="color:#dd7a59; margin-right:8px;"></i> 32 vCPUs</li>
+              <li style="margin-bottom:8px;"><i class="fa-solid fa-memory" style="color:#dd7a59; margin-right:8px;"></i> 62 GB RAM</li>
+              <li><i class="fa-solid fa-hard-drive" style="color:#dd7a59; margin-right:8px;"></i> Local Object Storage (MinIO)</li>
+            </ul>
+          </div>
+
+          <!-- Middle: Orchestration -->
+          <div class="pop-card" style="z-index:1; background:#fff; border-radius:12px; padding:32px; width:30%; text-align:center; box-shadow:0 10px 20px rgba(0,0,0,0.05); border-bottom:4px solid #dd7a59;">
+            <i class="fa-solid fa-dharmachakra" style="font-size:48px; color:#dd7a59; margin-bottom:16px;"></i>
+            <h3 contenteditable="true" style="font-family:'Outfit', sans-serif; font-size:24px; font-weight:700; color:#2d2825; margin:0 0 12px 0;">Kubernetes Cluster</h3>
+            <p style="color:#685e58; font-size:16px; margin:0;">Lightweight orchestration using <strong>k3s</strong> to manage the containerised environment.</p>
+          </div>
+
+          <!-- Right: Microservices -->
+          <div class="pop-card" style="z-index:1; background:#fff; border-radius:12px; padding:32px; width:30%; text-align:center; box-shadow:0 10px 20px rgba(0,0,0,0.05); border-bottom:4px solid #a35a59;">
+            <i class="fa-solid fa-puzzle-piece" style="font-size:48px; color:#a35a59; margin-bottom:16px;"></i>
+            <h3 contenteditable="true" style="font-family:'Outfit', sans-serif; font-size:24px; font-weight:700; color:#2d2825; margin:0 0 12px 0;">Microservices</h3>
+            <p style="color:#685e58; font-size:16px; margin:0;"><strong>18 containerised services</strong> acting as the basis of the platform, interacting seamlessly.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide" id="slide4" style="background:#fdfbf8;">
+      <div class="slide-content" style="padding:80px; flex-direction:column; justify-content:center;">
+        <p class="subtitle" contenteditable="true" style="font-family:'Outfit', sans-serif; font-size:14px; color:#a35a59; font-weight:700; text-transform:uppercase; letter-spacing:2px; margin:0 0 16px 0;">
+          Deployment Process
+        </p>
+        <h2 contenteditable="true" style="font-family:'Outfit', sans-serif; font-size:48px; font-weight:700; color:#2d2825; margin:0 0 64px 0;">
+          Platform Setup
+        </h2>
+        
+        <div style="display:flex; flex-direction:column; gap:24px;">
+          <div class="pop-card" style="display:flex; align-items:center; background:#f5ece4; border-radius:12px; padding:24px; box-shadow:0 4px 12px rgba(0,0,0,0.03);">
+            <div style="width:64px; height:64px; background:#a35a59; border-radius:50%; display:flex; justify-content:center; align-items:center; color:white; font-size:24px; margin-right:24px; shrink:0;">1</div>
+            <div>
+              <h3 contenteditable="true" style="font-family:'Outfit', sans-serif; font-size:24px; font-weight:700; color:#2d2825; margin:0 0 8px 0;">K3s Installation</h3>
+              <p contenteditable="true" style="font-size:18px; color:#685e58; margin:0;">Bootstrapping the lightweight Kubernetes environment on our bare-metal infrastructure.</p>
+            </div>
+          </div>
+          
+          <div class="pop-card" style="display:flex; align-items:center; background:#f5ece4; border-radius:12px; padding:24px; box-shadow:0 4px 12px rgba(0,0,0,0.03); margin-left:40px;">
+            <div style="width:64px; height:64px; background:#dd7a59; border-radius:50%; display:flex; justify-content:center; align-items:center; color:white; font-size:24px; margin-right:24px; shrink:0;">2</div>
+            <div>
+              <h3 contenteditable="true" style="font-family:'Outfit', sans-serif; font-size:24px; font-weight:700; color:#2d2825; margin:0 0 8px 0;">Helm Releases via Configuration</h3>
+              <p contenteditable="true" style="font-size:18px; color:#685e58; margin:0;">Deploying the 18 microservices systematically using Helm charts governed by a central configuration file.</p>
+            </div>
+          </div>
+          
+          <div class="pop-card" style="display:flex; align-items:center; background:#f5ece4; border-radius:12px; padding:24px; box-shadow:0 4px 12px rgba(0,0,0,0.03); margin-left:80px;">
+            <div style="width:64px; height:64px; background:#a35a59; border-radius:50%; display:flex; justify-content:center; align-items:center; color:white; font-size:24px; margin-right:24px; shrink:0;">3</div>
+            <div>
+              <h3 contenteditable="true" style="font-family:'Outfit', sans-serif; font-size:24px; font-weight:700; color:#2d2825; margin:0 0 8px 0;">Data Dictionary from Codebook</h3>
+              <p contenteditable="true" style="font-size:18px; color:#685e58; margin:0;">Translating institutional codebooks into strict JSON schemas to drive the Gen3 data dictionary.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide" id="slide-frontend" style="background:#fdfbf8;">
+      <div class="bg-decorator" style="top: 50%; left: 50%; transform: translate(-50%, -50%); width: 800px; height: 300px; background: rgba(221, 122, 89, 0.05);"></div>
+      <div class="slide-content" style="padding:80px; flex-direction:column; justify-content:center;">
+        <p class="subtitle" contenteditable="true" style="font-family:'Outfit', sans-serif; font-size:14px; color:#a35a59; font-weight:700; text-transform:uppercase; letter-spacing:2px; margin:0 0 16px 0;">
+          The User Experience
+        </p>
+        <h2 contenteditable="true" style="font-family:'Outfit', sans-serif; font-size:48px; font-weight:700; color:#2d2825; margin:0 0 48px 0;">
+          Frontend Portal Capabilities
+        </h2>
+        
+        <!-- Data Flow Pipeline -->
+        <div class="pop-card" style="display:flex; justify-content:space-between; align-items:center; background:#f5ece4; padding:24px 48px; border-radius:100px; margin-bottom:64px; box-shadow:0 4px 15px rgba(0,0,0,0.05);">
+          <div style="text-align:center; width: 160px;">
+            <i class="fa-solid fa-database" style="color:#a35a59; font-size:32px; margin-bottom:8px;"></i>
+            <p style="font-family:'Outfit', sans-serif; font-weight:700; color:#2d2825; margin:0;">Databases &amp; Object Storage</p>
+          </div>
+          <i class="fa-solid fa-arrow-right-long" style="color:#dd7a59; font-size:24px;"></i>
+          <div style="text-align:center; width: 160px;">
+            <i class="fa-solid fa-gears" style="color:#a35a59; font-size:32px; margin-bottom:8px;"></i>
+            <p style="font-family:'Outfit', sans-serif; font-weight:700; color:#2d2825; margin:0;">Custom ETL Process</p>
+          </div>
+          <i class="fa-solid fa-arrow-right-long" style="color:#dd7a59; font-size:24px;"></i>
+          <div style="text-align:center; width: 160px;">
+            <i class="fa-solid fa-desktop" style="color:#a35a59; font-size:32px; margin-bottom:8px;"></i>
+            <p style="font-family:'Outfit', sans-serif; font-weight:700; color:#2d2825; margin:0;">Queryable Frontend</p>
+          </div>
+        </div>
+
+        <!-- 3 Pillars -->
+        <div style="display:flex; gap:32px;">
+          <div class="pop-card" style="flex:1; background:#fff; padding:40px 32px; border-radius:16px; text-align:center; box-shadow:0 10px 30px rgba(0,0,0,0.04); border-top:6px solid #dd7a59;">
+            <div style="width:80px; height:80px; background:#f5ece4; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 24px auto;">
+              <i class="fa-solid fa-magnifying-glass-chart" style="font-size:32px; color:#dd7a59;"></i>
+            </div>
+            <h3 contenteditable="true" style="font-family:'Outfit', sans-serif; font-size:24px; font-weight:700; color:#2d2825; margin:0 0 16px 0;">Explore</h3>
+            <p contenteditable="true" style="font-size:16px; color:#685e58; margin:0;">Visually explore and filter patient metadata across the integrated studies and projects.</p>
+          </div>
+          
+          <div class="pop-card" style="flex:1; background:#fff; padding:40px 32px; border-radius:16px; text-align:center; box-shadow:0 10px 30px rgba(0,0,0,0.04); border-top:6px solid #a35a59;">
+            <div style="width:80px; height:80px; background:#f5ece4; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 24px auto;">
+              <i class="fa-solid fa-laptop-code" style="font-size:32px; color:#a35a59;"></i>
+            </div>
+            <h3 contenteditable="true" style="font-family:'Outfit', sans-serif; font-size:24px; font-weight:700; color:#2d2825; margin:0 0 16px 0;">Analyse</h3>
+            <p contenteditable="true" style="font-size:16px; color:#685e58; margin:0;">Export cohorts seamlessly to integrated Jupyter Notebooks for in-depth data analysis.</p>
+          </div>
+          
+          <div class="pop-card" style="flex:1; background:#fff; padding:40px 32px; border-radius:16px; text-align:center; box-shadow:0 10px 30px rgba(0,0,0,0.04); border-top:6px solid #dd7a59;">
+            <div style="width:80px; height:80px; background:#f5ece4; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 24px auto;">
+              <i class="fa-solid fa-diagram-project" style="font-size:32px; color:#dd7a59;"></i>
+            </div>
+            <h3 contenteditable="true" style="font-family:'Outfit', sans-serif; font-size:24px; font-weight:700; color:#2d2825; margin:0 0 16px 0;">Discover</h3>
+            <p contenteditable="true" style="font-size:16px; color:#685e58; margin:0;">Find and link associated studies, publications, and raw data files effortlessly.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="slide" id="slide5" style="background:#f5ece4;">
+      <div class="bg-decorator" style="top: -100px; right: 100px; width: 300px; height: 300px; background: rgba(163, 90, 89, 0.1);"></div>
+      <div class="slide-content" style="padding:80px; flex-direction:column; justify-content:center;">
+        <p class="subtitle" contenteditable="true" style="font-family:'Outfit', sans-serif; font-size:14px; color:#a35a59; font-weight:700; text-transform:uppercase; letter-spacing:2px; margin:0 0 16px 0;">
+          Data Harmonisation
+        </p>
+        <h2 contenteditable="true" style="font-family:'Outfit', sans-serif; font-size:48px; font-weight:700; color:#2d2825; margin:0 0 48px 0;">
+          Processing The MADIVA Data
+        </h2>
+        
+        <div style="display:flex; gap:32px; align-items:stretch;">
+          <div class="pop-card" style="flex:1; background:#fff; padding:32px; border-radius:12px; border-left:6px solid #dd7a59;">
+            <i class="fa-solid fa-filter" style="font-size:32px; color:#dd7a59; margin-bottom:16px;"></i>
+            <h3 contenteditable="true" style="font-size:22px; font-weight:700; color:#2d2825; margin:0 0 12px 0;">Filtered &amp; QC'd</h3>
+            <p contenteditable="true" style="font-size:16px; color:#685e58; margin:0;">Raw MADIVA data requires extensive Quality Control before ingestion into the rigid schemas.</p>
+          </div>
+          
+          <div class="pop-card" style="flex:1; background:#fff; padding:32px; border-radius:12px; border-left:6px solid #a35a59;">
+            <i class="fa-solid fa-link" style="font-size:32px; color:#a35a59; margin-bottom:16px;"></i>
+            <h3 contenteditable="true" style="font-size:22px; font-weight:700; color:#2d2825; margin:0 0 12px 0;">Matching Records</h3>
+            <p contenteditable="true" style="font-size:16px; color:#685e58; margin:0;">Filtering ensures that records match perfectly across different graph nodes (e.g., Subjects to Demographics).</p>
+          </div>
+          
+          <div class="pop-card" style="flex:1; background:#fff; padding:32px; border-radius:12px; border-left:6px solid #dd7a59;">
+            <i class="fa-solid fa-tags" style="font-size:32px; color:#dd7a59; margin-bottom:16px;"></i>
+            <h3 contenteditable="true" style="font-size:22px; font-weight:700; color:#2d2825; margin:0 0 12px 0;">Sentinel Values</h3>
+            <p contenteditable="true" style="font-size:16px; color:#685e58; margin:0;">QC involves complex enum conversions, using sentinel values to effectively sift out invalid entries from valid data.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide" id="slide6" style="background:#a35a59;">
+      <div class="bg-decorator bg-blob-2" style="background: rgba(221, 122, 89, 0.2);"></div>
+      <div class="slide-content" style="padding:80px; flex-direction:column; justify-content:center;">
+        <p class="subtitle" contenteditable="true" style="font-family:'Outfit', sans-serif; font-size:14px; color:#eaddd5; font-weight:700; text-transform:uppercase; letter-spacing:2px; margin:0 0 16px 0;">
+          Results &amp; Scale
+        </p>
+        <h2 contenteditable="true" style="font-family:'Outfit', sans-serif; font-size:48px; font-weight:700; color:#fdfbf8; margin:0 0 64px 0;">
+          Overall Platform Stats
+        </h2>
+        
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:40px;">
+          <!-- Top Row -->
+          <div class="pop-card" style="display:flex; align-items:center; gap:24px; padding-bottom:24px; border-bottom:1px solid rgba(253, 251, 248, 0.2);">
+            <div style="text-align:right; width:120px;">
+              <p contenteditable="true" style="font-family:'Outfit', sans-serif; font-size:48px; font-weight:800; color:#dd7a59; margin:0; line-height:1;">1.4M</p>
+            </div>
+            <div>
+              <h3 contenteditable="true" style="font-size:20px; font-weight:700; color:#fdfbf8; margin:0 0 4px 0;">Metadata Records</h3>
+              <p contenteditable="true" style="font-size:16px; color:#eaddd5; margin:0;">Total records across Vitals, Demographics &amp; Labs.</p>
+            </div>
+          </div>
+          
+          <div class="pop-card" style="display:flex; align-items:center; gap:24px; padding-bottom:24px; border-bottom:1px solid rgba(253, 251, 248, 0.2);">
+            <div style="text-align:right; width:120px;">
+              <p contenteditable="true" style="font-family:'Outfit', sans-serif; font-size:48px; font-weight:800; color:#dd7a59; margin:0; line-height:1;">67k</p>
+            </div>
+            <div>
+              <h3 contenteditable="true" style="font-size:20px; font-weight:700; color:#fdfbf8; margin:0 0 4px 0;">Validated Subjects</h3>
+              <p contenteditable="true" style="font-size:16px; color:#eaddd5; margin:0;">Successfully processed from 574k raw records.</p>
+            </div>
+          </div>
+          
+          <!-- Bottom Row -->
+          <div class="pop-card" style="display:flex; align-items:center; gap:24px;">
+            <div style="text-align:right; width:120px;">
+              <p contenteditable="true" style="font-family:'Outfit', sans-serif; font-size:48px; font-weight:800; color:#fdfbf8; margin:0; line-height:1;">&lt;3%</p>
+            </div>
+            <div>
+              <h3 contenteditable="true" style="font-size:20px; font-weight:700; color:#fdfbf8; margin:0 0 4px 0;">CPU Utilisation</h3>
+              <p contenteditable="true" style="font-size:16px; color:#eaddd5; margin:0;">Showing high efficiency on the local infrastructure.</p>
+            </div>
+          </div>
+
+          <div class="pop-card" style="display:flex; align-items:center; gap:24px;">
+            <div style="text-align:right; width:120px;">
+              <p contenteditable="true" style="font-family:'Outfit', sans-serif; font-size:48px; font-weight:800; color:#fdfbf8; margin:0; line-height:1;">&lt;17%</p>
+            </div>
+            <div>
+              <h3 contenteditable="true" style="font-size:20px; font-weight:700; color:#fdfbf8; margin:0 0 4px 0;">Memory Usage</h3>
+              <p contenteditable="true" style="font-size:16px; color:#eaddd5; margin:0;">Leaving ample capacity for data files and compute.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide" id="slide7" style="background:#2d2825;">
+      <div class="slide-content" style="align-items:center; justify-content:center; text-align:center; padding:80px;">
+        <div class="pop-card" style="display:flex; flex-direction:column; align-items:center;">
+          <div style="background:#fdfbf8; padding:32px; border-radius:16px; margin:0 0 32px 0;">
+            <i class="fa-solid fa-qrcode" style="font-size:100px; color:#2d2825;"></i>
+          </div>
+          <h2 contenteditable="true" style="font-family:'Outfit', sans-serif; font-size:48px; font-weight:700; color:#fdfbf8; margin:0 0 16px 0;">
+            Platform Walkthrough
+          </h2>
+          <p class="subtitle" contenteditable="true" style="font-size:24px; color:#c4b7b1; margin:0 0 24px 0;">
+            Live exploration of the Gen3 Portal.
+          </p>
+          <a href="#" style="display:inline-block; padding:12px 32px; background:#dd7a59; color:#fff; text-decoration:none; font-weight:700; border-radius:30px; font-size:18px; transition:0.2s;">
+            Launch Demo Link
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide" id="slide8" style="background:#fdfbf8;">
+      <div class="slide-content" style="padding:80px; flex-direction:column; justify-content:center;">
+        <h2 contenteditable="true" style="font-family:'Outfit', sans-serif; font-size:48px; font-weight:700; color:#2d2825; margin:0 0 48px 0;">
+          Future Work &amp; Expansion
+        </h2>
+        
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:32px;">
+          <!-- Grid items for future work -->
+          <div class="pop-card" style="background:#f5ece4; padding:32px; border-radius:12px; display:flex; gap:20px;">
+            <i class="fa-solid fa-users-gear" style="font-size:32px; color:#a35a59; shrink:0;"></i>
+            <div>
+              <h3 contenteditable="true" style="font-size:22px; font-weight:700; color:#2d2825; margin:0 0 8px 0;">Load Testing</h3>
+              <p contenteditable="true" style="font-size:16px; color:#685e58; margin:0;">Evaluating how a single-node deployment handles multiple concurrent users and query loads.</p>
+            </div>
+          </div>
+          
+          <div class="pop-card" style="background:#f5ece4; padding:32px; border-radius:12px; display:flex; gap:20px;">
+            <i class="fa-solid fa-flask" style="font-size:32px; color:#dd7a59; shrink:0;"></i>
+            <div>
+              <h3 contenteditable="true" style="font-size:22px; font-weight:700; color:#2d2825; margin:0 0 8px 0;">Researcher Input</h3>
+              <p contenteditable="true" style="font-size:16px; color:#685e58; margin:0;">Gathering feedback to customize the portal further. What changes are needed to maximise scientific utility?</p>
+            </div>
+          </div>
+          
+          <div class="pop-card" style="background:#f5ece4; padding:32px; border-radius:12px; display:flex; gap:20px;">
+            <i class="fa-solid fa-server" style="font-size:32px; color:#a35a59; shrink:0;"></i>
+            <div>
+              <h3 contenteditable="true" style="font-size:22px; font-weight:700; color:#2d2825; margin:0 0 8px 0;">Cluster Expansion</h3>
+              <p contenteditable="true" style="font-size:16px; color:#685e58; margin:0;">Exploring deployment across multiple nodes. Addressing questions of stability, data sync, and modified setups.</p>
+            </div>
+          </div>
+          
+          <div class="pop-card" style="background:#f5ece4; padding:32px; border-radius:12px; display:flex; gap:20px;">
+            <i class="fa-solid fa-key" style="font-size:32px; color:#dd7a59; shrink:0;"></i>
+            <div>
+              <h3 contenteditable="true" style="font-size:22px; font-weight:700; color:#2d2825; margin:0 0 8px 0;">Access &amp; Automation</h3>
+              <p contenteditable="true" style="font-size:16px; color:#685e58; margin:0;">Integrating Wits MFA and streamlining automated processes so new devs can customise without altering base code.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide" id="slide9" style="background:#3a3330;">
+      <div class="bg-decorator bg-blob-1" style="background: rgba(221, 122, 89, 0.2);"></div>
+      <div class="slide-content" style="justify-content:center; align-items:center; text-align:center; padding:64px;">
+        <i class="fa-solid fa-comments pop-card" style="font-size:48px; color:#dd7a59; margin:0 0 32px 0;"></i>
+        <h2 class="pop-card" contenteditable="true" style="font-family:'Outfit', sans-serif; font-size:56px; font-weight:700; color:#fdfbf8; margin:0 0 24px 0;">
+          Questions &amp; Feedback
+        </h2>
+        <p class="subtitle" contenteditable="true" style="font-size:24px; color:#c4b7b1; margin:0;">
+          Thank you for your time.
+        </p>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const slides = document.querySelectorAll('.slide');
+    const btnPrev = document.getElementById('btn-prev');
+    const btnNext = document.getElementById('btn-next');
+    const progressBar = document.getElementById('progress-bar');
+    const slideCounter = document.getElementById('slide-counter');
+    let currentIdx = 0;
+
+    function updateSlides() {
+      slides.forEach((slide, idx) => {
+        slide.classList.remove('active', 'past');
+        // Simple trick to restart animations when returning to a slide
+        void slide.offsetWidth; 
+        
+        if (idx === currentIdx) {
+          slide.classList.add('active');
+        } else if (idx < currentIdx) {
+          slide.classList.add('past');
+        }
+      });
+      
+      btnPrev.disabled = currentIdx === 0;
+      btnNext.disabled = currentIdx === slides.length - 1;
+      
+      const progress = (currentIdx / (slides.length - 1)) * 100;
+      progressBar.style.width = progress + '%';
+      slideCounter.innerText = (currentIdx + 1) + ' / ' + slides.length;
+    }
+
+    btnPrev.addEventListener('click', () => {
+      if (currentIdx > 0) { currentIdx--; updateSlides(); }
+    });
+
+    btnNext.addEventListener('click', () => {
+      if (currentIdx < slides.length - 1) { currentIdx++; updateSlides(); }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === 'Space') {
+        if (currentIdx < slides.length - 1) { currentIdx++; updateSlides(); }
+      } else if (e.key === 'ArrowLeft') {
+        if (currentIdx > 0) { currentIdx--; updateSlides(); }
+      }
+    });
+    
+    // Initial setup
+    updateSlides();
+  </script>
+</body>
+</html>

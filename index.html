@@ -266,7 +266,11 @@
   document.getElementById('go').onclick = submit;
   inp.addEventListener('keydown', e => { if(e.key==='Enter') submit(); });
   document.getElementById('demo').onclick = () => ['messy','scattered','siloed','slow','confusing','spreadsheets','duplicated','hidden','manual','fragile','tangled','messy','siloed','scattered'].forEach(add);
-  document.getElementById('clr').onclick = () => { words.forEach(o=>o.el.remove()); words.clear(); };
+  document.getElementById('clr').onclick = () => { 
+  words.forEach(o=>o.el.remove()); 
+  words.clear(); 
+  fetch(BASE, {method:'POST', body: 'SYS:CLEAR'}).catch(e => console.log('Clear failed:', e));
+  };
   tick();
 
   const P = new URLSearchParams(location.search);
@@ -285,6 +289,14 @@
         const m = JSON.parse(e.data);
         if(m.event!=='message' || seen.has(m.id) || typeof m.message!=='string') return;
         seen.add(m.id);
+        
+        // Wipe the board if the clear command is received
+        if (m.message === 'SYS:CLEAR') {
+          words.forEach(o=>o.el.remove()); 
+          words.clear();
+          return;
+        }
+
         const i = m.message.indexOf(':');
         const p = i>0 ? m.message.slice(0,i) : '';
         if(p===CID) return;
